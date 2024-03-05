@@ -40,11 +40,11 @@ o_dim = 3
 class CNN3_F(nn.Module):
     def __init__(self, out, ck1, ch1, cs1, cp1, ck2, ch2, cs2, cp2, ck3, ch3, cs3, cp3, f1):
         super(CNN3_F, self).__init__()
-        self.conv1 = nn.Conv1d(in_channels=inst_length, out_channels=ch1, kernel_size=ck1, stride=cs1, padding=cp1)
+        self.conv1 = nn.Conv2d(in_channels=inst_length, out_channels=ch1, kernel_size=(1, ck1), stride=(1, cs1), padding=(0, cp1))
         print('CNN model conv1', sum(p.numel() for p in self.conv1.parameters())/1e3, 'K parameters')
-        self.conv2 = nn.Conv1d(in_channels=ch1, out_channels=ch2, kernel_size=ck2, stride=cs2, padding=cp2)
+        self.conv2 = nn.Conv2d(in_channels=ch1, out_channels=ch2, kernel_size=(1, ck2), stride=(1, cs2), padding=(0, cp2))
         print('CNN model conv2', sum(p.numel() for p in self.conv2.parameters())/1e3, 'K parameters')
-        self.conv3 = nn.Conv1d(in_channels=ch2, out_channels=ch3, kernel_size=ck3, stride=cs3, padding=cp3)
+        self.conv3 = nn.Conv2d(in_channels=ch2, out_channels=ch3, kernel_size=(1, ck3), stride=(1, cs3), padding=(0, cp3))
         print('CNN model conv3', sum(p.numel() for p in self.conv3.parameters())/1e3, 'K parameters')
         self.f1_input = math.floor((context_length + 2 * cp1 - ck1) / cs1 + 1)
         print(self.f1_input)
@@ -61,14 +61,14 @@ class CNN3_F(nn.Module):
 
     def forward(self, x):
 
-        x = x.view(-1, inst_length, context_length)
+        #x = x.view(-1, inst_length, context_length)
         x = F.relu(self.conv1(x))
         #print(x.shape)
         x = F.relu(self.conv2(x))
         #print(x.shape)
         x = F.relu(self.conv3(x))
         #print(x.shape)
-        x = x.view(-1, self.f1_input)
+        x = x.reshape(-1, self.f1_input)
         #print(x.shape)
         x = F.relu(self.fc1(x))
         #print(x.shape)
@@ -90,9 +90,13 @@ cnn = CNN3_F(o_dim,ck1,ch1,cs1,cp1,ck2,ch2,cs2,cp2,ck3,ch3,cs3,cp3,fc1_dim)
 cnn = cnn.half().to(device)
 print('CNN model', sum(p.numel() for p in cnn.parameters())/1e3, 'K parameters')
 
-data3 = torch.rand(B, 50, 111, dtype=torch.float16)
-print('Data shape', data3.shape)
+data3 = torch.rand(B, 50, 1, 111, dtype=torch.float16)
 data3 = data3.to(device)
+print('Data shape', data3.shape)
+
+if (len(sys.argv) == 3):
+    data3 = data3.to(memory_format=torch.channels_last)
+    cnn = cnn.to(memory_format=torch.channels_last)
 
 t0 = time.perf_counter()
 _cudart.cudaProfilerStart()

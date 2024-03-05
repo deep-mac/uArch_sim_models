@@ -10,9 +10,9 @@ import ctypes
 _cudart = ctypes.CDLL('libcudart.so')
 
 in_dim = 50
-h_dim = 256
-o_dim = 16
-seq_len = 256
+h_dim = 128
+o_dim = 32
+seq_len = 128
 n_layer = 2
 B = 4096# N
 device = 'cuda:0'
